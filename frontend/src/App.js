@@ -5,6 +5,7 @@ function App() {
   const [selectedEnvironment, setSelectedEnvironment] = useState('Development');
   const [selectedCategory, setSelectedCategory] = useState('Security');
   const [tables, setTables] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [informaticaConnected, setInformaticaConnected] = useState(false);
   const [pythonETLConnected, setPythonETLConnected] = useState(false);
   const [error, setError] = useState(null);
@@ -29,14 +30,18 @@ function App() {
 
   const fetchTablesByCategory = async () => {
     try {
+      setIsLoading(true);
       const response = await fetch(`http://localhost:5000/api/tables?category=${selectedCategory}&environment=${selectedEnvironment}`);
       const data = await response.json();
-      setTables(data);
+      setTables(Array.isArray(data) ? data : []);
       setSelectedTables([]); // Reset selected tables when category changes
       setError(null);
     } catch (err) {
       setError('Failed to fetch tables');
       console.error('Error fetching tables:', err);
+      setTables([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -165,54 +170,60 @@ function App() {
 
       <div className="tables-section">
         <h2>Tables</h2>
-        <div className="select-all-container">
-          <label>
-            <input
-              type="checkbox"
-              checked={selectedTables.length === tables.length && tables.length > 0}
-              onChange={handleSelectAll}
-            />
-            Select All Tables
-          </label>
-        </div>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Select</th>
-              <th>Table Name</th>
-              <th>Source Count</th>
-              <th>Target Count</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tables.map((table, index) => (
-              <tr key={index}>
-                <td>
-                  <input
-                    type="checkbox"
-                    checked={selectedTables.includes(table.name)}
-                    onChange={() => handleTableSelect(table.name)}
-                  />
-                </td>
-                <td>{table.name}</td>
-                <td>{table.source_count}</td>
-                <td>{table.target_count}</td>
-                <td>{table.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {tables.length > 0 && (
-          <div className="compare-button-container">
-            <button 
-              onClick={compareData}
-              disabled={selectedTables.length === 0}
-              className={selectedTables.length === 0 ? 'disabled' : ''}
-            >
-              Compare Selected Tables
-            </button>
-          </div>
+        {isLoading ? (
+          <div className="loading">Loading tables...</div>
+        ) : (
+          <>
+            <div className="select-all-container">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={selectedTables.length === tables.length && tables.length > 0}
+                  onChange={handleSelectAll}
+                />
+                Select All Tables
+              </label>
+            </div>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Select</th>
+                  <th>Table Name</th>
+                  <th>Source Count</th>
+                  <th>Target Count</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.isArray(tables) && tables.map((table, index) => (
+                  <tr key={index}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedTables.includes(table.name)}
+                        onChange={() => handleTableSelect(table.name)}
+                      />
+                    </td>
+                    <td>{table.name}</td>
+                    <td>{table.source_count}</td>
+                    <td>{table.target_count}</td>
+                    <td>{table.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {tables.length > 0 && (
+              <div className="compare-button-container">
+                <button 
+                  onClick={compareData}
+                  disabled={selectedTables.length === 0}
+                  className={selectedTables.length === 0 ? 'disabled' : ''}
+                >
+                  Compare Selected Tables
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
